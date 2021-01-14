@@ -21,9 +21,15 @@
         "jsx": "react",
         "sourceMap": true,
         "declaration": true,
+        "noImplicitAny": true,
+        "strictFunctionTypes": true,
+        "strictBindCallApply": true,
+        "noImplicitThis": true,
+        "alwaysStrict": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "experimentalDecorators": true,
+        "noImplicitReturns": true,
         "incremental": true,
         "noFallthroughCasesInSwitch": true,
         "isolatedModules": false,
@@ -37,9 +43,9 @@
         "outDir": "./dist"
     },
     "include": [
-        "test",
         "src",
-        "jest.config.js"
+        "test",
+        "jest.config.ts"
     ],
     "exclude": [
         "node_modules",
