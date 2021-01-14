@@ -1,8 +1,8 @@
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html
 
-module.exports = {
-    testTimeout: 5000,
+export default {
+    testTimeout: 100,
 
     // All imported modules in your tests should be mocked automatically
     // automock: false,
@@ -47,7 +47,7 @@ module.exports = {
             statements: 100,
             branches: 100,
             lines: 100,
-            functions: 92.31,
+            functions: 100,
         },
     },
 
@@ -82,7 +82,7 @@ module.exports = {
 
     // A map from regular expressions to module names that allow to stub out resources with a single module
     moduleNameMapper: {
-        '\\.(css|less)$': '<rootDir>/test/styleMock.ts',
+        // '\\.(css|less)$': '<rootDir>/test/styleMock.ts',
     },
 
     // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader

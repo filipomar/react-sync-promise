@@ -6,30 +6,22 @@ export enum PromiseState {
     REJECTED = 'REJECTED',
 }
 
-type BaseWrappedPromise<S extends PromiseState, C = Record<string, unknown>> = { readonly state: S } & C;
+type WithState<S extends PromiseState> = { readonly state: S };
+type WithValue<V> = { readonly value: V };
 
-type PendingPromise = BaseWrappedPromise<PromiseState.PENDING>;
-type ResolvedPromise<T> = BaseWrappedPromise<
-    PromiseState.RESOLVED,
-    {
-        /**
-         * The resolved value
-         */
-        readonly value: T;
-    }
->;
-type RejectedPromise = BaseWrappedPromise<
-    PromiseState.REJECTED,
-    {
-        /**
-         * The rejection
-         */
-        readonly value: unknown;
-    }
->;
+type PendingPromise = WithState<PromiseState.PENDING>;
+type ResolvedPromise<T> = WithState<PromiseState.RESOLVED> & WithValue<T>;
+type RejectedPromise = WithState<PromiseState.REJECTED> & WithValue<unknown>;
 
 type WrappedPromise<T> = PendingPromise | ResolvedPromise<T> | RejectedPromise;
 
+/**
+ * Handle promises synchronously in react!
+ *
+ * @example usePromise(Promise.resolve('Execute order 66'))
+ *
+ * @param promise the promise you want to handle synchronously
+ */
 export const usePromise = <T>(promise: T | Promise<T>): WrappedPromise<T> => {
     const [value, setValue] = useReactState<WrappedPromise<T>>({ state: PromiseState.PENDING });
 
@@ -66,7 +58,7 @@ export const usePromise = <T>(promise: T | Promise<T>): WrappedPromise<T> => {
     return value;
 };
 
-export const isPending = <T>(promise: WrappedPromise<T>): promise is RejectedPromise => promise.state === PromiseState.PENDING;
+export const isPending = <T>(promise: WrappedPromise<T>): promise is PendingPromise => promise.state === PromiseState.PENDING;
 
 export const isResolved = <T>(content: WrappedPromise<T>): content is ResolvedPromise<T> => content.state === PromiseState.RESOLVED;
 
