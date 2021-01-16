@@ -1,14 +1,14 @@
 import React, { FC, useState } from 'react';
 import { fireEvent, render, act } from '@testing-library/react';
 
-import { usePromise, isPending, isRejected, isResolved } from '.';
+import { usePromise, isPending, isRejected, isResolved, ifUnresolved } from '.';
 
-type Args = { readonly promise?: Promise<boolean> };
+type Args = { readonly promise?: Promise<boolean>; readonly otherwise: boolean };
 
 const delay = async (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(() => resolve(), milliseconds));
 const extractWrapper = (container: HTMLElement): string[] => Array.from(container.querySelectorAll('ul li')).map((el) => String(el.textContent));
 
-const PromiseHookWrapper: FC<Args> = ({ promise }) => {
+const PromiseHookWrapper: FC<Args> = ({ promise, otherwise }) => {
     const syncPromise = usePromise(promise);
 
     return (
@@ -17,6 +17,7 @@ const PromiseHookWrapper: FC<Args> = ({ promise }) => {
             <li>isPending: {String(isPending(syncPromise))}</li>
             <li>isRejected: {String(isRejected(syncPromise))}</li>
             <li>isResolved: {String(isResolved(syncPromise))}</li>
+            <li>ifUnresolved: {String(ifUnresolved(syncPromise, otherwise))}</li>
         </ul>
     );
 };
@@ -27,7 +28,7 @@ const Helper: FC<Args> = ({ promise }) => {
     return (
         <>
             <button onClick={() => setShow(!show)} />
-            {show && <PromiseHookWrapper promise={promise} />}
+            {show && <PromiseHookWrapper promise={promise} otherwise />}
         </>
     );
 };
@@ -42,7 +43,17 @@ describe('usePromise', () => {
 
             const promiseMock = jest.fn<void, [(value: boolean) => void, (rejection: unknown) => void]>();
 
-            const { container } = render(<Helper promise={new Promise(promiseMock)} />);
+            const { container } = render(<Helper promise={new Promise(promiseMock)} otherwise />);
+
+            expect(extractWrapper(container)).toStrictEqual([
+                'JSON: {"state":"PENDING"}',
+                'isPending: true',
+                'isRejected: false',
+                'isResolved: false',
+
+                // Even before it is unresolved, it still set to true
+                'ifUnresolved: true',
+            ]);
 
             await delay(1);
 
@@ -57,7 +68,13 @@ describe('usePromise', () => {
              */
             await delay(1);
 
-            expect(extractWrapper(container)).toStrictEqual(['JSON: {"state":"RESOLVED","value":true}', 'isPending: false', 'isRejected: false', 'isResolved: true']);
+            expect(extractWrapper(container)).toStrictEqual([
+                'JSON: {"state":"RESOLVED","value":true}',
+                'isPending: false',
+                'isRejected: false',
+                'isResolved: true',
+                'ifUnresolved: true',
+            ]);
 
             /**
              * React did NOT complained about anything
@@ -74,7 +91,7 @@ describe('usePromise', () => {
             console.error = errorLog;
 
             const promiseMock = jest.fn<void, [(value: boolean) => void, (rejection: unknown) => void]>();
-            const { container } = render(<Helper promise={new Promise(promiseMock)} />);
+            const { container } = render(<Helper promise={new Promise(promiseMock)} otherwise />);
 
             /**
              * Hide hook
@@ -108,14 +125,24 @@ describe('usePromise', () => {
             expect(errorLog).toBeCalledTimes(0);
         }));
 
-    it('handles rejections', () =>
+    it('handles rejections and fallbacks', () =>
         act(async () => {
             const errorLog = jest.fn();
             console.error = errorLog;
 
             const promiseMock = jest.fn<void, [(value: boolean) => void, (rejection: unknown) => void]>();
 
-            const { container } = render(<Helper promise={new Promise(promiseMock)} />);
+            const { container } = render(<Helper promise={new Promise(promiseMock)} otherwise />);
+
+            expect(extractWrapper(container)).toStrictEqual([
+                'JSON: {"state":"PENDING"}',
+                'isPending: true',
+                'isRejected: false',
+                'isResolved: false',
+
+                // Fallback
+                'ifUnresolved: true',
+            ]);
 
             await delay(1);
 
@@ -130,7 +157,15 @@ describe('usePromise', () => {
              */
             await delay(1);
 
-            expect(extractWrapper(container)).toStrictEqual(['JSON: {"state":"REJECTED","value":"Ew"}', 'isPending: false', 'isRejected: true', 'isResolved: false']);
+            expect(extractWrapper(container)).toStrictEqual([
+                'JSON: {"state":"REJECTED","value":"Ew"}',
+                'isPending: false',
+                'isRejected: true',
+                'isResolved: false',
+
+                // Fallback
+                'ifUnresolved: true',
+            ]);
 
             /**
              * React did NOT complained about anything
@@ -143,10 +178,17 @@ describe('usePromise', () => {
             const errorLog = jest.fn();
             console.error = errorLog;
 
-            const { container } = render(<Helper />);
+            const { container } = render(<Helper otherwise />);
             await delay(1);
 
-            expect(extractWrapper(container)).toStrictEqual(['JSON: {"state":"RESOLVED"}', 'isPending: false', 'isRejected: false', 'isResolved: true']);
+            expect(extractWrapper(container)).toStrictEqual([
+                'JSON: {"state":"RESOLVED"}',
+                'isPending: false',
+                'isRejected: false',
+                'isResolved: true',
+                // Fallbacks to the value, that is undefined
+                'ifUnresolved: undefined',
+            ]);
 
             /**
              * React did NOT complained about anything

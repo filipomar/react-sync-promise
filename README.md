@@ -5,7 +5,7 @@ A short react helper snippet to handle promises as a react synchronous hook<br /
 
 ```tsx
 import React from 'react';
-import { usePromise, isPending, isRejected, isResolved } from 'react-sync-promise';
+import { usePromise, isPending, isRejected, isResolved, ifUnresolved } from 'react-sync-promise';
 
 export const PrequelsSurprise: FC = () => {
     const syncPromise = usePromise(Promise.resolve('Execute order 66'));
@@ -16,6 +16,7 @@ export const PrequelsSurprise: FC = () => {
             <li>isPending: {String(isPending(syncPromise))}</li>
             <li>isRejected: {String(isRejected(syncPromise))}</li>
             <li>isResolved: {String(isResolved(syncPromise))}</li>
+            <li>ifUnresolved: {ifUnresolved(syncPromise, 'Hello There')}</li>
         </ul>
     );
 };
