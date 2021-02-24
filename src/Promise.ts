@@ -13,7 +13,7 @@ type PendingPromise = WithState<PromiseState.PENDING>;
 type ResolvedPromise<T> = WithState<PromiseState.RESOLVED> & WithValue<T>;
 type RejectedPromise<E> = WithState<PromiseState.REJECTED> & WithValue<E>;
 
-type WrappedPromise<T, E> = PendingPromise | ResolvedPromise<T> | RejectedPromise<E>;
+export type WrappedPromise<T, E> = PendingPromise | ResolvedPromise<T> | RejectedPromise<E>;
 
 /**
  * Handle promises synchronously in react!

@@ -1,6 +1,6 @@
 {
   "name": "react-sync-promise",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A small react helper snippet to handle promises as a react synchronous hook",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,7 +10,9 @@
     "url": "git+https://github.com/filipomar/react-sync-promise.git"
   },
   "scripts": {
-    "prepublishOnly": "npm run prettier && npm run lint && npm run coverage && npm run build",
+    "audit": "npm run prettier && npm run lint && npm run coverage && npm run build",
+    "preversion": "npm run audit",
+    "prepublishOnly": "npm run audit",
     "build": "rm -rf dist/ && tsc --project publictsconfig.json",
     "lint": "eslint --config .eslintrc.js \"./**/*.{ts,tsx}\"",
     "prettier": "prettier --parser typescript --config .prettierrc.js --write \"src/**/*.{ts,tsx}\"",
@@ -36,12 +38,12 @@
     "@testing-library/jest-dom": "^5.11.9",
     "@testing-library/react": "^10.4.9",
     "@types/jest": "^26.0.20",
-    "@types/node": "^14.14.20",
+    "@types/node": "^14.14.21",
     "@types/react": "^16.9.55",
     "@types/react-dom": "^16.9.9",
     "@typescript-eslint/eslint-plugin": "^3.10.1",
     "@typescript-eslint/parser": "^3.10.1",
-    "eslint": "^7.17.0",
+    "eslint": "^7.18.0",
     "eslint-config-prettier": "^6.15.0",
     "eslint-plugin-prettier": "^3.3.1",
     "eslint-plugin-react": "^7.22.0",
