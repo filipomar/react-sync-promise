@@ -14,7 +14,7 @@
     "preversion": "npm run audit",
     "prepublishOnly": "npm run audit",
     "build": "rm -rf dist/ && tsc --project buildtsconfig.json",
-    "lint": "eslint --config .eslintrc.js \"./**/*.{ts,tsx}\"",
+    "lint": "eslint --config .eslintrc.json .",
     "prettier": "prettier --parser typescript --config .prettierrc.js --write \"src/**/*.{ts,tsx}\"",
     "test": "jest --no-cache --maxWorkers=2",
     "coverage": "jest --no-cache --coverage --maxWorkers=2"

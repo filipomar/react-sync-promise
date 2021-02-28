@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+import { Stoppable } from './Stoppable';
+
 export enum SyncPromiseState {
     PENDING = 'PENDING',
     RESOLVED = 'RESOLVED',
@@ -20,48 +22,43 @@ type RejectedPromise<E> = WithState<SyncPromiseState.REJECTED> & WithValue<E>;
  */
 export type SyncPromise<T, E> = PendingPromise | ResolvedPromise<T> | RejectedPromise<E>;
 
+const createPending = (): PendingPromise => ({ state: SyncPromiseState.PENDING });
+const createResolved = <T>(value: T): ResolvedPromise<T> => ({ state: SyncPromiseState.RESOLVED, value });
+const createRejected = <E>(value: E): RejectedPromise<E> => ({ state: SyncPromiseState.REJECTED, value });
+
 /**
  * Handle promises synchronously in react!
  *
  * @example usePromise(Promise.resolve('Execute order 66'))
  * @example usePromise<string, Error>(Promise.resolve('Execute order 66'))
+ * @example usePromise('Execute order 66')
  *
  * @param promise the promise you want to handle synchronously
  */
 export const usePromise = <T, E = unknown>(promise: T | Promise<T>): SyncPromise<T, E> => {
-    const [value, setValue] = useState<SyncPromise<T, E>>({ state: SyncPromiseState.PENDING });
+    const [syncPromise, setSyncPromise] = useState<SyncPromise<T, E>>(createPending());
 
     useEffect(() => {
-        /**
-         * Change halter for already discarded hook calls
-         */
-        let alive = true;
+        const stoppable = new Stoppable();
 
         const process = async (): Promise<void> => {
-            let newValue: typeof value;
+            let newSyncPromise: SyncPromise<T, E>;
 
             try {
-                newValue = { state: SyncPromiseState.RESOLVED, value: await promise };
+                newSyncPromise = createResolved(await promise);
             } catch (e) {
-                newValue = { state: SyncPromiseState.REJECTED, value: e as E };
-            }
-
-            /**
-             * Check if the hook has been dropped since the promise got resolved
-             */
-            if (alive) {
-                setValue(newValue);
+                newSyncPromise = createRejected(e as E);
+            } finally {
+                stoppable.run(() => setSyncPromise(newSyncPromise));
             }
         };
 
         void process();
 
-        return () => {
-            alive = false;
-        };
+        return () => stoppable.stop();
     }, [promise]);
 
-    return value;
+    return syncPromise;
 };
 
 /**
