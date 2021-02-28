@@ -1,33 +1,39 @@
-import { useState as useReactState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
-export enum PromiseState {
+export enum SyncPromiseState {
     PENDING = 'PENDING',
     RESOLVED = 'RESOLVED',
     REJECTED = 'REJECTED',
 }
 
-type WithState<S extends PromiseState> = { readonly state: S };
+type WithState<S extends SyncPromiseState> = { readonly state: S };
 type WithValue<V> = { readonly value: V };
 
-type PendingPromise = WithState<PromiseState.PENDING>;
-type ResolvedPromise<T> = WithState<PromiseState.RESOLVED> & WithValue<T>;
-type RejectedPromise<E> = WithState<PromiseState.REJECTED> & WithValue<E>;
+type PendingPromise = WithState<SyncPromiseState.PENDING>;
+type ResolvedPromise<T> = WithState<SyncPromiseState.RESOLVED> & WithValue<T>;
+type RejectedPromise<E> = WithState<SyncPromiseState.REJECTED> & WithValue<E>;
 
-export type WrappedPromise<T, E> = PendingPromise | ResolvedPromise<T> | RejectedPromise<E>;
+/**
+ * Synchronous promise hook result
+ *
+ * Use helper functions to infer actual type or play around with the state enum if you are stubborn
+ */
+export type SyncPromise<T, E> = PendingPromise | ResolvedPromise<T> | RejectedPromise<E>;
 
 /**
  * Handle promises synchronously in react!
  *
  * @example usePromise(Promise.resolve('Execute order 66'))
+ * @example usePromise<string, Error>(Promise.resolve('Execute order 66'))
  *
  * @param promise the promise you want to handle synchronously
  */
-export const usePromise = <T, E = unknown>(promise: T | Promise<T>): WrappedPromise<T, E> => {
-    const [value, setValue] = useReactState<WrappedPromise<T, E>>({ state: PromiseState.PENDING });
+export const usePromise = <T, E = unknown>(promise: T | Promise<T>): SyncPromise<T, E> => {
+    const [value, setValue] = useState<SyncPromise<T, E>>({ state: SyncPromiseState.PENDING });
 
     useEffect(() => {
         /**
-         * Aux flag to halt changes in case of internal hook has been unmounted
+         * Change halter for already discarded hook calls
          */
         let alive = true;
 
@@ -35,15 +41,15 @@ export const usePromise = <T, E = unknown>(promise: T | Promise<T>): WrappedProm
             let newValue: typeof value;
 
             try {
-                newValue = { state: PromiseState.RESOLVED, value: await promise };
+                newValue = { state: SyncPromiseState.RESOLVED, value: await promise };
             } catch (e) {
-                newValue = { state: PromiseState.REJECTED, value: e as E };
+                newValue = { state: SyncPromiseState.REJECTED, value: e as E };
             }
 
+            /**
+             * Check if the hook has been dropped since the promise got resolved
+             */
             if (alive) {
-                /**
-                 * If the hook has been dropped since the promise got resolved
-                 */
                 setValue(newValue);
             }
         };
@@ -61,19 +67,19 @@ export const usePromise = <T, E = unknown>(promise: T | Promise<T>): WrappedProm
 /**
  * @example `isPending(usePromise(new Promise(() => void 0)))`
  */
-export const isPending = <T, E = unknown>(promise: WrappedPromise<T, E>): promise is PendingPromise => promise.state === PromiseState.PENDING;
+export const isPending = <T, E = unknown>(promise: SyncPromise<T, E>): promise is PendingPromise => promise.state === SyncPromiseState.PENDING;
 
 /**
- * @example `isPending(usePromise(Promise.resolve('I have no resolve')))`
+ * @example `isResolved(usePromise(Promise.resolve('I have resolve')))`
  */
-export const isResolved = <T, E = unknown>(promise: WrappedPromise<T, E>): promise is ResolvedPromise<T> => promise.state === PromiseState.RESOLVED;
+export const isResolved = <T, E = unknown>(promise: SyncPromise<T, E>): promise is ResolvedPromise<T> => promise.state === SyncPromiseState.RESOLVED;
 
 /**
- * @example `isPending(usePromise(Promise.reject('I have no resolve')))`
+ * @example `isRejected(usePromise(Promise.reject('I have no resolve')))`
  */
-export const isRejected = <T, E = unknown>(promise: WrappedPromise<T, E>): promise is RejectedPromise<E> => promise.state === PromiseState.REJECTED;
+export const isRejected = <T, E = unknown>(promise: SyncPromise<T, E>): promise is RejectedPromise<E> => promise.state === SyncPromiseState.REJECTED;
 
 /**
  * @example `ifUnresolved(usePromise(Promise.reject('I have no resolve')), 'I am unresolved')`
  */
-export const ifUnresolved = <T, E = unknown>(promise: WrappedPromise<T, E>, otherwise: T): T => (isResolved(promise) ? promise.value : otherwise);
+export const ifUnresolved = <T, E = unknown>(promise: SyncPromise<T, E>, otherwise: T): T => (isResolved(promise) ? promise.value : otherwise);
