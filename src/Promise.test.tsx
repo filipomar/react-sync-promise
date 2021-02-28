@@ -38,8 +38,7 @@ beforeEach(() => jest.resetAllMocks());
 describe('usePromise', () => {
     it('validates that when a promise resolves, it causes the value to change', () =>
         act(async () => {
-            const errorLog = jest.fn();
-            console.error = errorLog;
+            const errorLog = jest.spyOn(console, 'error').mockReturnValue();
 
             const promiseMock = jest.fn<void, [(value: boolean) => void, (rejection: unknown) => void]>();
 
@@ -87,8 +86,7 @@ describe('usePromise', () => {
             /**
              * Hooks
              */
-            const errorLog = jest.fn();
-            console.error = errorLog;
+            const errorLog = jest.spyOn(console, 'error').mockReturnValue();
 
             const promiseMock = jest.fn<void, [(value: boolean) => void, (rejection: unknown) => void]>();
             const { container } = render(<Helper promise={new Promise(promiseMock)} otherwise />);
@@ -127,8 +125,7 @@ describe('usePromise', () => {
 
     it('handles rejections and fallbacks', () =>
         act(async () => {
-            const errorLog = jest.fn();
-            console.error = errorLog;
+            const errorLog = jest.spyOn(console, 'error').mockReturnValue();
 
             const promiseMock = jest.fn<void, [(value: boolean) => void, (rejection: unknown) => void]>();
 
@@ -175,8 +172,7 @@ describe('usePromise', () => {
 
     it('will accept no value', () =>
         act(async () => {
-            const errorLog = jest.fn();
-            console.error = errorLog;
+            const errorLog = jest.spyOn(console, 'error').mockReturnValue();
 
             const { container } = render(<Helper otherwise />);
             await delay(1);

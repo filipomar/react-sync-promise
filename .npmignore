@@ -1,10 +1,12 @@
 .DS_Store
+.eslintignore
 .eslintrc.js
-.gitignore
 .nvmrc
 .prettierrc.js
 .vscode
+buildtsconfig.json
 coverage
-jest.config.js
+jest.config.ts
 src
 test
+tsconfig.json
