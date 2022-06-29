@@ -1,0 +1,36 @@
+{
+    "env": {
+        "browser": true,
+        "es2021": true,
+        "jest": true
+    },
+    "extends": ["plugin:react/recommended", "airbnb"],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "ecmaFeatures": {
+            "jsx": true
+        },
+        "ecmaVersion": "latest",
+        "sourceType": "module"
+    },
+    "plugins": ["react", "@typescript-eslint"],
+    "rules": {
+        "import/no-extraneous-dependencies": ["error", { "devDependencies": ["**/*.test.tsx", "test/**"] }],
+        "import/no-unresolved": "off",
+        "indent": ["error", 4],
+        "max-len": ["error", 180],
+        "no-console": "warn",
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": ["error"],
+        "object-curly-newline": ["error", { "ObjectPattern": { "multiline": true }, "ExportDeclaration": { "multiline": true } }],
+        "react/function-component-definition": "off",
+        "react/jsx-filename-extension": ["error", { "extensions": [".tsx"] }],
+        "react/jsx-indent": ["error", 4],
+        "react/prop-types": "off",
+        "react/require-default-props": "off",
+        "react/no-unused-prop-types": "off",
+        "import/extensions": "off",
+        "no-shadow": "off",
+        "@typescript-eslint/no-shadow": "error"
+    }
+}

@@ -1,61 +1,65 @@
 {
-  "name": "react-sync-promise",
-  "version": "1.0.4",
-  "description": "A small react helper snippet to handle promises as a react synchronous hook",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "typings": "dist/index.d.ts",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/filipomar/react-sync-promise.git"
-  },
-  "scripts": {
-    "audit": "npm run prettier && npm run lint && npm run coverage && npm run build",
-    "preversion": "npm run audit",
-    "prepublishOnly": "npm run audit",
-    "build": "rm -rf dist/ && tsc --project buildtsconfig.json",
-    "lint": "eslint --config .eslintrc.js \"./**/*.{ts,tsx}\"",
-    "prettier": "prettier --parser typescript --config .prettierrc.js --write \"src/**/*.{ts,tsx}\"",
-    "test": "jest --no-cache --maxWorkers=2",
-    "coverage": "jest --no-cache --coverage --maxWorkers=2"
-  },
-  "keywords": [
-    "react",
-    "promise",
-    "hooks",
-    "hook",
-    "sync"
-  ],
-  "author": {
-    "name": "Filipe Pomar",
-    "email": "filipomar@hotmail.com"
-  },
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/filipomar/react-sync-promise/issues"
-  },
-  "homepage": "https://github.com/filipomar/react-sync-promise#readme",
-  "devDependencies": {
-    "@testing-library/jest-dom": "^5.11.9",
-    "@testing-library/react": "^10.4.9",
-    "@types/jest": "^26.0.20",
-    "@types/node": "^14.14.31",
-    "@types/react": "^16.14.4",
-    "@types/react-dom": "^16.9.11",
-    "@typescript-eslint/eslint-plugin": "^3.10.1",
-    "@typescript-eslint/parser": "^3.10.1",
-    "eslint": "^7.21.0",
-    "eslint-config-prettier": "^6.15.0",
-    "eslint-plugin-prettier": "^3.3.1",
-    "eslint-plugin-react": "^7.22.0",
-    "jest": "^26.6.3",
-    "prettier": "^2.2.1",
-    "react-dom": "^16.14.0",
-    "ts-jest": "^26.5.2",
-    "ts-node": "^9.1.1",
-    "typescript": "^3.9.9"
-  },
-  "dependencies": {
-    "react": "^16.14.0"
-  }
+    "name": "react-sync-promise",
+    "version": "1.0.4",
+    "description": "A small react helper snippet to handle promises as a react synchronous hook",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "typings": "dist/index.d.ts",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/filipomar/react-sync-promise.git"
+    },
+    "scripts": {
+        "audit": "npm run prettier && npm run lint && npm run coverage && npm run build",
+        "preversion": "npm run audit",
+        "prepublishOnly": "npm run audit",
+        "build": "rm -rf dist/ && tsc --project buildtsconfig.json",
+        "lint": "eslint --fix '**/*.{ts,tsx}'",
+        "prettier": "prettier --config .prettierrc.js --write --check --loglevel error .",
+        "test": "jest --no-cache --maxWorkers=2",
+        "coverage": "jest --no-cache --coverage --maxWorkers=2"
+    },
+    "keywords": [
+        "react",
+        "promise",
+        "hooks",
+        "hook",
+        "sync"
+    ],
+    "author": {
+        "name": "Filipe Pomar",
+        "email": "filipomar@hotmail.com"
+    },
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/filipomar/react-sync-promise/issues"
+    },
+    "homepage": "https://github.com/filipomar/react-sync-promise#readme",
+    "devDependencies": {
+        "@testing-library/jest-dom": "^5.16.4",
+        "@testing-library/react": "^12.1.5",
+        "@types/jest": "^28.1.3",
+        "@types/node": "^18.0.0",
+        "@types/react": "^16.14.28",
+        "@types/react-dom": "^16.9.16",
+        "@typescript-eslint/eslint-plugin": "^5.30.0",
+        "@typescript-eslint/parser": "^5.30.0",
+        "eslint": "^8.18.0",
+        "eslint-config-airbnb": "^19.0.4",
+        "eslint-plugin-import": "^2.26.0",
+        "eslint-plugin-jsx-a11y": "^6.6.0",
+        "eslint-plugin-react": "^7.30.1",
+        "eslint-plugin-react-hooks": "^4.6.0",
+        "jest": "^28.1.2",
+        "jest-environment-jsdom": "^28.1.2",
+        "prettier": "^2.7.1",
+        "react": "^16.14.0",
+        "react-dom": "^16.14.0",
+        "ts-jest": "^28.0.5",
+        "ts-node": "^10.8.1",
+        "typescript": "^4.7.4"
+    },
+    "peerDependencies": {
+        "react": ">=16.14.0"
+    }
 }
