@@ -54,7 +54,7 @@ export const usePromise = <T, E = unknown>(promise: T | Promise<T>): SyncPromise
             }
         };
 
-        void process();
+        process();
 
         return () => {
             alive = false;

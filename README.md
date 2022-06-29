@@ -1,4 +1,5 @@
 # react-sync-promise
+
 A short react helper snippet to handle promises as a react synchronous hook<br />
 
 ## Usage
