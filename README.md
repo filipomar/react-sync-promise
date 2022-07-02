@@ -1,6 +1,6 @@
 # react-sync-promise
 
-A short react helper snippet to handle promises as a react synchronous hook
+A small react helper snippet to handle promises as a react synchronous hook with mininmal amount of re-renders
 
 ## Usage
 
