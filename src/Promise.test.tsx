@@ -1,17 +1,19 @@
-import React, { FC, useState } from 'react';
+import React, { FC, useState, PropsWithChildren } from 'react';
 import { fireEvent, render, act } from '@testing-library/react';
 
-import { usePromise, isPending, isRejected, isResolved, ifUnresolved, ifNotRejected, SyncPromiseState } from '.';
+import { usePromise, isPending, isRejected, isResolved, ifUnresolved, ifNotRejected, SyncPromiseState, SyncPromise } from '.';
 
-type Args = Readonly<{ promise?: Promise<boolean>; otherwise: boolean }>;
+type Args<T> = Readonly<{ promise?: Promise<T>; otherwise: T; onRender?: (asyncPromise: Promise<T> | undefined, syncPromise: SyncPromise<T | undefined, unknown>) => unknown }>;
 
 const delay = async (milliseconds: number): Promise<void> => new Promise((resolve) => {
     setTimeout(() => resolve(), milliseconds);
 });
 const extractWrapper = (container: HTMLElement): string[] => Array.from(container.querySelectorAll('ul li')).map((el) => String(el.textContent));
 
-const PromiseHookWrapper: FC<Args> = ({ promise, otherwise }) => {
+const PromiseHookWrapper = <T = boolean, >({ promise, otherwise, onRender }: PropsWithChildren<Args<T>>): ReturnType<FC> => {
     const syncPromise = usePromise(promise);
+
+    onRender?.(promise, syncPromise);
 
     return (
         <ul>
@@ -25,7 +27,7 @@ const PromiseHookWrapper: FC<Args> = ({ promise, otherwise }) => {
     );
 };
 
-const Helper: FC<Args> = ({ promise }) => {
+const Helper: FC<Args<boolean>> = ({ promise }) => {
     const [show, setShow] = useState(true);
 
     return (
@@ -181,6 +183,97 @@ describe(usePromise, () => {
             'ifUnresolved: undefined',
             'ifNotRejected: true',
         ]);
+
+        /** React did NOT complained about anything */
+        expect(errorLog).toBeCalledTimes(0);
+    }));
+
+    it('resets the promise before updating the sync promise value', () => act(async () => {
+        const errorLog = jest.spyOn(console, 'error').mockReturnValue();
+
+        const onRender = jest.fn();
+
+        const promiseA = delay(100).then(() => 'A');
+        const promiseB = delay(200).then(() => 'B');
+
+        const Switcher: FC = () => {
+            const [promise, setPromise] = useState(promiseA);
+
+            return (
+                <>
+                    <button type="button" aria-label="testing-button" onClick={() => setPromise(promiseB)} />
+                    <PromiseHookWrapper promise={promise} otherwise="C" onRender={onRender} />
+                </>
+            );
+        };
+
+        const { container, unmount } = render(<Switcher />);
+
+        await delay(50);
+
+        /** Had only first render, the initial state */
+        expect(onRender).toBeCalledTimes(1);
+        expect(onRender).nthCalledWith(1, promiseA, { state: SyncPromiseState.PENDING });
+        expect(extractWrapper(container)).toStrictEqual([
+            'JSON: {"state":"PENDING"}',
+            'isPending: true',
+            'isRejected: false',
+            'isResolved: false',
+            'ifUnresolved: C',
+            'ifNotRejected: C',
+        ]);
+
+        await delay(50);
+
+        /** Now it has loaded, second re-render with the resolution */
+        expect(onRender).toBeCalledTimes(2);
+        expect(onRender).nthCalledWith(2, promiseA, { state: SyncPromiseState.RESOLVED, value: 'A' });
+        expect(extractWrapper(container)).toStrictEqual([
+            'JSON: {"state":"RESOLVED","value":"A"}',
+            'isPending: false',
+            'isRejected: false',
+            'isResolved: true',
+            'ifUnresolved: A',
+            'ifNotRejected: C',
+        ]);
+
+        /** Switch to second promise */
+        const button = container.querySelector('button');
+        if (!button) {
+            throw new Error('Button not rendered');
+        }
+        fireEvent.click(button);
+
+        await delay(1);
+
+        /** Now on fourth render, as it is has recieved the original async promise and was internally set to pending again */
+        expect(onRender).toBeCalledTimes(4);
+        expect(onRender).nthCalledWith(3, promiseB, { state: SyncPromiseState.RESOLVED, value: 'A' });
+        expect(onRender).nthCalledWith(4, promiseB, { state: SyncPromiseState.PENDING });
+        expect(extractWrapper(container)).toStrictEqual([
+            'JSON: {"state":"PENDING"}',
+            'isPending: true',
+            'isRejected: false',
+            'isResolved: false',
+            'ifUnresolved: C',
+            'ifNotRejected: C',
+        ]);
+
+        await delay(100);
+
+        /** Now on the fifth render with the new inbound sync promise */
+        expect(onRender).toBeCalledTimes(5);
+        expect(onRender).nthCalledWith(5, promiseB, { state: SyncPromiseState.RESOLVED, value: 'B' });
+        expect(extractWrapper(container)).toStrictEqual([
+            'JSON: {"state":"RESOLVED","value":"B"}',
+            'isPending: false',
+            'isRejected: false',
+            'isResolved: true',
+            'ifUnresolved: B',
+            'ifNotRejected: C',
+        ]);
+
+        unmount();
 
         /** React did NOT complained about anything */
         expect(errorLog).toBeCalledTimes(0);
