@@ -1,25 +1,32 @@
 # react-sync-promise
 
-A small react helper snippet to handle promises as a react synchronous hook with mininmal amount of re-renders
+A simple react helper snippet to handle promises as a react synchronous hook with mininmal amount of re-renders
 
 ## Usage
 
 ```tsx
-import React, { FC } from 'react';
-import { usePromise, isPending, isRejected, isResolved, ifUnresolved, ifNotRejected } from 'react-sync-promise';
+import React, { FC, useMemo } from 'react';
+import { usePromise, isPending, isRejected, isResolved, ifUnresolved, ifNotRejected, usePromiseState } from 'react-sync-promise';
 
 export const PrequelsSurprise: FC = () => {
-    const syncPromise = usePromise(Promise.resolve('Execute order 66'));
+    const memoizedPromise = useMemo(() => Promise.resolve('Execute order 66'), []);
+
+    const syncPromise = usePromise(memoizedPromise);
+    const [secondSyncPromise, setSecondSyncPromise] = usePromiseState(memoizedPromise);
 
     return (
-        <ul>
-            <li>{`JSON: ${JSON.stringify(syncPromise)}`}</li>
-            <li>{`isPending: ${String(isPending(syncPromise))}`}</li>
-            <li>{`isRejected: ${String(isRejected(syncPromise))}`}</li>
-            <li>{`isResolved: ${String(isResolved(syncPromise))}`}</li>
-            <li>{`ifUnresolved: ${String(ifUnresolved(syncPromise, 'Hello There'))}`}</li>
-            <li>{`ifNotRejected: ${String(ifNotRejected(syncPromise, 'General kenobi'))}`}</li>
-        </ul>
+        <>
+            <p>
+                {`JSON: ${JSON.stringify(secondSyncPromise)}`}
+                <button type="button" aria-label="Update Promise" onClick={() => setSecondSyncPromise(Promise.resolve('This is where the fun begins'))} />
+            </p>
+            <p>{`JSON: ${JSON.stringify(syncPromise)}`}</p>
+            <p>{`isPending: ${String(isPending(syncPromise))}`}</p>
+            <p>{`isRejected: ${String(isRejected(syncPromise))}`}</p>
+            <p>{`isResolved: ${String(isResolved(syncPromise))}`}</p>
+            <p>{`ifUnresolved: ${String(ifUnresolved(syncPromise, 'Hello There'))}`}</p>
+            <p>{`ifNotRejected: ${String(ifNotRejected(syncPromise, 'General kenobi'))}`}</p>
+        </>
     );
 };
 ```

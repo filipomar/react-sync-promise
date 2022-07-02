@@ -1,7 +1,7 @@
 {
     "name": "react-sync-promise",
     "version": "1.0.7",
-    "description": "A small react helper snippet to handle promises as a react synchronous hook with mininmal amount of re-renders",
+    "description": "A simple react helper snippet to handle promises as a react synchronous hook with mininmal amount of re-renders",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "typings": "dist/index.d.ts",
@@ -10,12 +10,11 @@
         "url": "git+https://github.com/filipomar/react-sync-promise.git"
     },
     "scripts": {
-        "audit": "npm run prettier && npm run lint && npm run coverage && npm run build",
+        "audit": "npm run format && npm run coverage && npm run build",
         "preversion": "npm run audit",
         "prepublishOnly": "npm run audit",
         "build": "rm -rf dist/ && tsc --project buildtsconfig.json",
-        "lint": "eslint --fix '**/*.{ts,tsx}'",
-        "prettier": "prettier --config .prettierrc.json --write --check --loglevel error .",
+        "format": "prettier --config .prettierrc.json --write --check --loglevel error . && eslint --fix '**/*.{ts,tsx}'",
         "test": "jest --no-cache --maxWorkers=2",
         "coverage": "jest --no-cache --coverage --maxWorkers=2"
     },
@@ -40,11 +39,11 @@
         "@testing-library/jest-dom": "^5.16.4",
         "@testing-library/react": "^12.1.5",
         "@types/jest": "^28.1.4",
-        "@types/node": "^18.0.0",
+        "@types/node": "^18.0.1",
         "@types/react": "^16.14.28",
         "@types/react-dom": "^16.9.16",
-        "@typescript-eslint/eslint-plugin": "^5.30.3",
-        "@typescript-eslint/parser": "^5.30.3",
+        "@typescript-eslint/eslint-plugin": "^5.30.4",
+        "@typescript-eslint/parser": "^5.30.4",
         "eslint": "^8.19.0",
         "eslint-config-airbnb": "^19.0.4",
         "eslint-plugin-import": "^2.26.0",
