@@ -1,6 +1,6 @@
 {
     "name": "react-sync-promise",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "description": "A simple react helper snippet to handle promises as a react synchronous hook with mininmal amount of re-renders",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
