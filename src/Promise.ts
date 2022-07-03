@@ -6,7 +6,7 @@ import { useHookedState } from './Unhook';
 type SourceRef<T> = { source: T | Promise<T> };
 
 /**
- * Loads
+ * Loads given promise with built-in semaphor for later updates
  */
 const loadPromise = <T, E>(newSource: T | Promise<T>, ref: SourceRef<T>, setSyncPromise: Dispatch<SyncPromise<T, E>>): void => {
     Promise.resolve(newSource)
