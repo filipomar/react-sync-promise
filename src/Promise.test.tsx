@@ -1,208 +1,88 @@
-import React, { FC, useState, PropsWithChildren } from 'react';
+import React, { FC, useMemo, useState } from 'react';
 import { fireEvent, render, act } from '@testing-library/react';
 
-import { usePromise, isPending, isRejected, isResolved, ifUnresolved, ifNotRejected, SyncPromiseState, SyncPromise } from '.';
+import { usePromise, SyncPromiseState, usePromiseState, SyncPromise } from '.';
 
-type Args<T> = Readonly<{ promise?: Promise<T>; otherwise: T; onRender?: (asyncPromise: Promise<T> | undefined, syncPromise: SyncPromise<T | undefined, unknown>) => unknown }>;
-
-const delay = async (milliseconds: number): Promise<void> => new Promise((resolve) => {
-    setTimeout(() => resolve(), milliseconds);
-});
-const extractWrapper = (container: HTMLElement): string[] => Array.from(container.querySelectorAll('ul li')).map((el) => String(el.textContent));
-
-const PromiseHookWrapper = <T = boolean, >({ promise, otherwise, onRender }: PropsWithChildren<Args<T>>): ReturnType<FC> => {
-    const syncPromise = usePromise(promise);
-
-    onRender?.(promise, syncPromise);
-
-    return (
-        <ul>
-            <li>{`JSON: ${JSON.stringify(syncPromise)}`}</li>
-            <li>{`isPending: ${String(isPending(syncPromise))}`}</li>
-            <li>{`isRejected: ${String(isRejected(syncPromise))}`}</li>
-            <li>{`isResolved: ${String(isResolved(syncPromise))}`}</li>
-            <li>{`ifUnresolved: ${String(ifUnresolved(syncPromise, otherwise))}`}</li>
-            <li>{`ifNotRejected: ${String(ifNotRejected(syncPromise, otherwise))}`}</li>
-        </ul>
-    );
-};
-
-const Helper: FC<Args<boolean>> = ({ promise }) => {
-    const [show, setShow] = useState(true);
-
-    return (
-        <>
-            <button type="button" aria-label="testing-button" onClick={() => setShow(!show)} />
-            {show && <PromiseHookWrapper promise={promise} otherwise />}
-        </>
-    );
-};
-
-describe(ifUnresolved, () => {
-    it('ifUnresolved detects unresolved promises and gives out alternative value', () => {
-        expect(ifUnresolved({ state: SyncPromiseState.PENDING }, 'alternative')).toBe('alternative');
-        expect(ifUnresolved({ state: SyncPromiseState.REJECTED, value: 'rejection' }, 'alternative')).toBe('alternative');
-        expect(ifUnresolved({ state: SyncPromiseState.RESOLVED, value: 'resolution' }, 'alternative')).toBe('resolution');
-    });
-});
-
-describe(ifNotRejected, () => {
-    it('ifNotRejected detects non rejected promises and gives out alternative value', () => {
-        expect(ifNotRejected({ state: SyncPromiseState.PENDING }, 'alternative')).toBe('alternative');
-        expect(ifNotRejected({ state: SyncPromiseState.REJECTED, value: 'rejection' }, 'alternative')).toBe('rejection');
-        expect(ifNotRejected({ state: SyncPromiseState.RESOLVED, value: 'resolution' }, 'alternative')).toBe('alternative');
-    });
-});
+import { delay } from '../test';
 
 describe(usePromise, () => {
-    it('validates that when a promise resolves, it causes the value to change', () => act(async () => {
-        const errorLog = jest.spyOn(console, 'error').mockReturnValue();
-
-        const promiseMock = jest.fn<void, [(value: boolean) => void, (rejection: unknown) => void]>();
-
-        const { container } = render(<Helper promise={new Promise(promiseMock)} otherwise />);
-
-        expect(extractWrapper(container)).toStrictEqual([
-            'JSON: {"state":"PENDING"}',
-            'isPending: true',
-            'isRejected: false',
-            'isResolved: false',
-
-            // Even before it is unresolved, it still set to true
-            'ifUnresolved: true',
-            'ifNotRejected: true',
-        ]);
-
-        await delay(1);
-
-        expect(promiseMock).toBeCalledTimes(1);
-        /** Resolving */
-        promiseMock.mock.calls[0][0](true);
-
-        /** Giving react time to breathe */
-        await delay(1);
-
-        expect(extractWrapper(container)).toStrictEqual([
-            'JSON: {"state":"RESOLVED","value":true}',
-            'isPending: false',
-            'isRejected: false',
-            'isResolved: true',
-            'ifUnresolved: true',
-            'ifNotRejected: true',
-        ]);
-
-        /** React did NOT complained about anything */
-        expect(errorLog).toBeCalledTimes(0);
-    }));
-
     it('validates that when a promise resolves AFTER the component has been unmounted, an error does not occur', () => act(async () => {
-        /** Hooks */
         const errorLog = jest.spyOn(console, 'error').mockReturnValue();
 
-        const promiseMock = jest.fn<void, [(value: boolean) => void, (rejection: unknown) => void]>();
-        const { container } = render(<Helper promise={new Promise(promiseMock)} otherwise />);
+        const Label: FC<{ promise: Promise<unknown> }> = ({ promise }) => {
+            const syncPromise = usePromise(promise);
+            return <span>{JSON.stringify(syncPromise)}</span>;
+        };
 
-        /** Hide hook */
-        const button = container.querySelector('button');
-        if (!button) {
-            throw new Error('Button not rendered');
-        }
-        fireEvent.click(button);
+        const delayed = delay(100);
 
-        await delay(1);
+        const { unmount } = render(<Label promise={delayed.then(() => Promise.resolve('I am late'))} />);
 
-        /** No content is being rendered */
-        expect(container.innerText).toBeUndefined();
+        /** Unmount the component before the promise is resolved */
+        await delay(50);
+        unmount();
 
-        /** Resolve after it was hidden */
-        expect(promiseMock).toBeCalledTimes(1);
-        promiseMock.mock.calls[0][0](true);
-
-        await delay(1);
-
-        expect(extractWrapper(container)).toStrictEqual([]);
+        /** Wait for the promise to resolve */
+        await delayed.then(() => delay(1));
 
         /** React did NOT complained about anything */
         expect(errorLog).toBeCalledTimes(0);
     }));
 
-    it('handles rejections and fallbacks', () => act(async () => {
+    it('handles rejections and displays rejected promise', () => act(async () => {
         const errorLog = jest.spyOn(console, 'error').mockReturnValue();
 
-        const promiseMock = jest.fn<void, [(value: boolean) => void, (rejection: unknown) => void]>();
+        const Error: FC<{ promise: Promise<unknown> }> = ({ promise }) => {
+            const syncPromise = usePromise(promise);
+            return <span>{JSON.stringify(syncPromise)}</span>;
+        };
 
-        const { container } = render(<Helper promise={new Promise(promiseMock)} otherwise />);
+        const delayed = delay(100);
 
-        expect(extractWrapper(container)).toStrictEqual([
-            'JSON: {"state":"PENDING"}',
-            'isPending: true',
-            'isRejected: false',
-            'isResolved: false',
+        const { container, unmount } = render(<Error promise={delayed.then(() => Promise.reject('I am rejection'))} />);
 
-            // Fallback
-            'ifUnresolved: true',
-            'ifNotRejected: true',
-        ]);
+        await delayed.then(() => delay(1));
 
-        await delay(1);
+        /** Error is displayed */
+        expect(container.querySelector('span')?.textContent).toStrictEqual(JSON.stringify({ state: SyncPromiseState.REJECTED, value: 'I am rejection' }));
 
-        expect(promiseMock).toBeCalledTimes(1);
-        /** Rejecting */
-        promiseMock.mock.calls[0][1]('Ew');
-
-        /** Giving react time to breathe */
-        await delay(1);
-
-        expect(extractWrapper(container)).toStrictEqual([
-            'JSON: {"state":"REJECTED","value":"Ew"}',
-            'isPending: false',
-            'isRejected: true',
-            'isResolved: false',
-
-            // Fallback
-            'ifUnresolved: true',
-            'ifNotRejected: Ew',
-        ]);
+        unmount();
 
         /** React did NOT complained about anything */
         expect(errorLog).toBeCalledTimes(0);
     }));
 
-    it('will accept no value', () => act(async () => {
+    it('will accept non promise values', () => act(async () => {
         const errorLog = jest.spyOn(console, 'error').mockReturnValue();
 
-        const { container } = render(<Helper otherwise />);
+        const NoValue: FC = () => {
+            const promise = usePromise('I am not a promise');
+            return <span>{JSON.stringify(promise)}</span>;
+        };
+
+        const { container } = render(<NoValue />);
         await delay(1);
 
-        expect(extractWrapper(container)).toStrictEqual([
-            'JSON: {"state":"RESOLVED"}',
-            'isPending: false',
-            'isRejected: false',
-            'isResolved: true',
-            // Fallbacks to the value, that is undefined
-            'ifUnresolved: undefined',
-            'ifNotRejected: true',
-        ]);
+        expect(container.querySelector('span')?.textContent).toStrictEqual(JSON.stringify({ state: SyncPromiseState.RESOLVED, value: 'I am not a promise' }));
 
         /** React did NOT complained about anything */
         expect(errorLog).toBeCalledTimes(0);
     }));
 
-    it('resets the promise before updating the sync promise value', () => act(async () => {
+    it('resets the promise before updating the synchronous promise value', () => act(async () => {
         const errorLog = jest.spyOn(console, 'error').mockReturnValue();
-
-        const onRender = jest.fn();
 
         const promiseA = delay(100).then(() => 'A');
         const promiseB = delay(200).then(() => 'B');
 
         const Switcher: FC = () => {
             const [promise, setPromise] = useState(promiseA);
+            const syncPromise = usePromise(promise);
 
             return (
                 <>
                     <button type="button" aria-label="testing-button" onClick={() => setPromise(promiseB)} />
-                    <PromiseHookWrapper promise={promise} otherwise="C" onRender={onRender} />
+                    <span>{JSON.stringify(syncPromise)}</span>
                 </>
             );
         };
@@ -211,31 +91,14 @@ describe(usePromise, () => {
 
         await delay(50);
 
-        /** Had only first render, the initial state */
-        expect(onRender).toBeCalledTimes(1);
-        expect(onRender).nthCalledWith(1, promiseA, { state: SyncPromiseState.PENDING });
-        expect(extractWrapper(container)).toStrictEqual([
-            'JSON: {"state":"PENDING"}',
-            'isPending: true',
-            'isRejected: false',
-            'isResolved: false',
-            'ifUnresolved: C',
-            'ifNotRejected: C',
-        ]);
+        /** Render as loading */
+        expect(container.querySelector('span')?.textContent).toStrictEqual(JSON.stringify({ state: SyncPromiseState.PENDING }));
 
-        await delay(50);
+        /** Await for A to render */
+        await promiseA.then(() => delay(1));
 
-        /** Now it has loaded, second re-render with the resolution */
-        expect(onRender).toBeCalledTimes(2);
-        expect(onRender).nthCalledWith(2, promiseA, { state: SyncPromiseState.RESOLVED, value: 'A' });
-        expect(extractWrapper(container)).toStrictEqual([
-            'JSON: {"state":"RESOLVED","value":"A"}',
-            'isPending: false',
-            'isRejected: false',
-            'isResolved: true',
-            'ifUnresolved: A',
-            'ifNotRejected: C',
-        ]);
+        /** Render as loaded */
+        expect(container.querySelector('span')?.textContent).toStrictEqual(JSON.stringify({ state: SyncPromiseState.RESOLVED, value: 'A' }));
 
         /** Switch to second promise */
         const button = container.querySelector('button');
@@ -244,34 +107,174 @@ describe(usePromise, () => {
         }
         fireEvent.click(button);
 
+        /** Await another cycle to render */
         await delay(1);
 
-        /** Now on fourth render, as it is has recieved the original async promise and was internally set to pending again */
+        /** The state is now loading again */
+        expect(container.querySelector('span')?.textContent).toStrictEqual(JSON.stringify({ state: SyncPromiseState.PENDING }));
+
+        /** Await for B to render */
+        await promiseB.then(() => delay(1));
+
+        /** Render as loaded again */
+        expect(container.querySelector('span')?.textContent).toStrictEqual(JSON.stringify({ state: SyncPromiseState.RESOLVED, value: 'B' }));
+
+        unmount();
+
+        /** React did NOT complained about anything */
+        expect(errorLog).toBeCalledTimes(0);
+    }));
+});
+
+describe(usePromiseState, () => {
+    it('ignores updates that have been overshadowed by other updates', () => act(async () => {
+        const errorLog = jest.spyOn(console, 'error').mockReturnValue();
+
+        const onRender = jest.fn<void, [SyncPromise<unknown, unknown>]>();
+
+        const promiseA = delay(200).then(() => 'A');
+        const promiseB = delay(100).then(() => 'B');
+
+        const Switcher: FC = () => {
+            const [promise, setPromise] = usePromiseState(promiseA);
+
+            onRender(promise);
+
+            return <button type="button" aria-label="testing-button" onClick={() => setPromise(promiseB)} />;
+        };
+
+        const { container, unmount } = render(<Switcher />);
+
+        await delay(50);
+
+        /** Loading A */
+        expect(onRender).toBeCalledTimes(1);
+        expect(onRender).nthCalledWith(1, { state: SyncPromiseState.PENDING });
+
+        /** Switch to b promise */
+        const button = container.querySelector('button');
+        if (!button) {
+            throw new Error('Button not rendered');
+        }
+        fireEvent.click(button);
+
+        await delay(1);
+
+        /** Await for b to render */
+        await promiseB.then(() => delay(1));
+
+        /** B is rendered */
+        expect(onRender).toBeCalledTimes(2);
+        expect(onRender).nthCalledWith(2, { state: SyncPromiseState.RESOLVED, value: 'B' });
+
+        /** Await for the final render */
+        await promiseA.then(() => delay(1));
+
+        /** A resolution was not sent to cause another render */
+        expect(onRender).toBeCalledTimes(2);
+
+        unmount();
+
+        /** React did NOT complained about anything */
+        expect(errorLog).toBeCalledTimes(0);
+    }));
+
+    it('ignores updates set to the same promise', () => act(async () => {
+        const errorLog = jest.spyOn(console, 'error').mockReturnValue();
+
+        const onRender = jest.fn<void, [SyncPromise<unknown, unknown>]>();
+
+        const onlyPromise = Promise.resolve('A');
+
+        const Switcher: FC = () => {
+            const [promise, setPromise] = usePromiseState(onlyPromise);
+
+            onRender(promise);
+
+            return <button type="button" aria-label="testing-button" onClick={() => setPromise(onlyPromise)} />;
+        };
+
+        const { container, unmount } = render(<Switcher />);
+
+        /** Await for promise to be done */
+        await onlyPromise.then(() => delay(1));
+
+        expect(onRender).toBeCalledTimes(2);
+        expect(onRender).nthCalledWith(1, { state: SyncPromiseState.PENDING });
+        expect(onRender).nthCalledWith(2, { state: SyncPromiseState.RESOLVED, value: 'A' });
+
+        /** Reload same promise */
+        const button = container.querySelector('button');
+        if (!button) {
+            throw new Error('Button not rendered');
+        }
+        fireEvent.click(button);
+
+        await delay(1);
+
+        /** No more re-renders */
+        expect(onRender).toBeCalledTimes(2);
+
+        unmount();
+
+        /** React did NOT complained about anything */
+        expect(errorLog).toBeCalledTimes(0);
+    }));
+
+    it('allows update of promise as react Dispatcher', () => act(async () => {
+        const errorLog = jest.spyOn(console, 'error').mockReturnValue();
+
+        const firstPromise = Promise.resolve('A');
+        const secondPromise = Promise.resolve('A');
+
+        const onRender = jest.fn<void, [SyncPromise<unknown, unknown>]>();
+        const switcher = jest
+            .fn<Promise<string> | string, [Promise<string> | string]>()
+            .mockImplementationOnce((p) => {
+                expect(p === firstPromise).toBe(true);
+                return p;
+            })
+            .mockImplementationOnce((p) => {
+                expect(p === firstPromise).toBe(true);
+                return secondPromise;
+            });
+
+        const Switcher: FC = () => {
+            const [promise, setPromise] = usePromiseState(useMemo(() => firstPromise, []));
+
+            onRender(promise);
+
+            return <button type="button" aria-label="testing-button" onClick={() => setPromise((p) => switcher(p))} />;
+        };
+
+        const { container, unmount } = render(<Switcher />);
+
+        await delay(1);
+
+        expect(onRender).toBeCalledTimes(2);
+        expect(onRender).nthCalledWith(1, { state: SyncPromiseState.PENDING });
+        expect(onRender).nthCalledWith(2, { state: SyncPromiseState.RESOLVED, value: 'A' });
+
+        /** Reload same promise */
+        const button = container.querySelector('button');
+        if (!button) {
+            throw new Error('Button not rendered');
+        }
+        fireEvent.click(button);
+
+        await delay(1);
+
+        /** No more re-renders */
+        expect(onRender).toBeCalledTimes(2);
+
+        /** Switch to new promise with same yield */
+        fireEvent.click(button);
+
+        await delay(1);
+
         expect(onRender).toBeCalledTimes(4);
-        expect(onRender).nthCalledWith(3, promiseB, { state: SyncPromiseState.RESOLVED, value: 'A' });
-        expect(onRender).nthCalledWith(4, promiseB, { state: SyncPromiseState.PENDING });
-        expect(extractWrapper(container)).toStrictEqual([
-            'JSON: {"state":"PENDING"}',
-            'isPending: true',
-            'isRejected: false',
-            'isResolved: false',
-            'ifUnresolved: C',
-            'ifNotRejected: C',
-        ]);
-
-        await delay(100);
-
-        /** Now on the fifth render with the new inbound sync promise */
-        expect(onRender).toBeCalledTimes(5);
-        expect(onRender).nthCalledWith(5, promiseB, { state: SyncPromiseState.RESOLVED, value: 'B' });
-        expect(extractWrapper(container)).toStrictEqual([
-            'JSON: {"state":"RESOLVED","value":"B"}',
-            'isPending: false',
-            'isRejected: false',
-            'isResolved: true',
-            'ifUnresolved: B',
-            'ifNotRejected: C',
-        ]);
+        expect(onRender).nthCalledWith(3, { state: SyncPromiseState.PENDING });
+        expect(onRender).nthCalledWith(4, { state: SyncPromiseState.RESOLVED, value: 'A' });
 
         unmount();
 
