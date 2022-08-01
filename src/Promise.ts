@@ -1,14 +1,12 @@
-import { useEffect, Dispatch, SetStateAction, useCallback, useMemo } from 'react';
+import { useEffect, Dispatch, SetStateAction, useCallback, useRef, MutableRefObject } from 'react';
 
 import { PendingPromise, RejectedPromise, ResolvedPromise, SyncPromise, SyncPromiseState } from '.';
 import { useHookedState } from './Unhook';
 
-type SourceRef<T> = { source: T | Promise<T> };
-
 /**
  * Loads given promise with built-in semaphor for later updates
  */
-const loadPromise = <T, E>(newSource: T | Promise<T>, ref: SourceRef<T>, setSyncPromise: Dispatch<SyncPromise<T, E>>): void => {
+const loadPromise = <T, E>(newSource: T | Promise<T>, ref: MutableRefObject<T | Promise<T>>, setSyncPromise: Dispatch<SyncPromise<T, E>>): void => {
     Promise.resolve(newSource)
         .then((value): ResolvedPromise<T> => ({ state: SyncPromiseState.RESOLVED, value }))
         .catch((value: E): RejectedPromise<E> => ({ state: SyncPromiseState.REJECTED, value }))
@@ -17,7 +15,7 @@ const loadPromise = <T, E>(newSource: T | Promise<T>, ref: SourceRef<T>, setSync
          * the same source as the one that is currently loaded
          */
         .then((newDerived) => {
-            if (ref.source === newSource) {
+            if (ref.current === newSource) {
                 setSyncPromise(newDerived);
             }
         });
@@ -42,22 +40,22 @@ const defaultSync: PendingPromise = { state: SyncPromiseState.PENDING };
  */
 export const usePromiseState = <T, E = unknown>(asyncPromise: T | Promise<T>): [syncPromise: SyncPromise<T, E>, dispatcher: Dispatch<SetStateAction<T | Promise<T>>>] => {
     /** A reference to the original promise, that will never be updated */
-    const originalPromiseRef = useMemo<SourceRef<T>>(() => ({ source: asyncPromise }), []);
+    const originalPromiseRef = useRef<T | Promise<T>>(asyncPromise);
 
     /** The derived sync promise */
     const [syncPromise, setSyncPromise] = useHookedState<SyncPromise<T, E> | null>(null);
 
     const callback = useCallback(
         (action: SetStateAction<T | Promise<T>>) => {
-            const newSource = action instanceof Function ? action(originalPromiseRef.source) : action;
+            const newSource = action instanceof Function ? action(originalPromiseRef.current) : action;
 
-            if (newSource === originalPromiseRef.source) {
+            if (newSource === originalPromiseRef.current) {
                 /** Source is already loaded, do nothing */
                 return;
             }
 
             /** Point the ref to the new source */
-            originalPromiseRef.source = newSource;
+            originalPromiseRef.current = newSource;
 
             /** Mark it as loading again */
             setSyncPromise(null);
@@ -69,7 +67,7 @@ export const usePromiseState = <T, E = unknown>(asyncPromise: T | Promise<T>): [
     );
 
     /** Force initial load */
-    useEffect(() => loadPromise(originalPromiseRef.source, originalPromiseRef, setSyncPromise), [originalPromiseRef]);
+    useEffect(() => loadPromise(originalPromiseRef.current, originalPromiseRef, setSyncPromise), [originalPromiseRef]);
 
     return [syncPromise || defaultSync, callback];
 };
